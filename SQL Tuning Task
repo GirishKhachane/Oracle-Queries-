@@ -1,0 +1,30 @@
+----- > 1- You can find the problematic SQL ID, execution time, and Snap ID
+
+Eg Snap_ID  --  2651-52652
+Eg SQL_ID   --  6txzwcknmpwuk
+
+----- > 2. Create tuning_task and provide the Snap_ID and SQL_ID
+
+set serveroutput on size unlimited
+DECLARE
+  l_sql_tune_task_id  VARCHAR2(100);
+BEGIN
+  l_sql_tune_task_id := DBMS_SQLTUNE.create_tuning_task (
+                          sql_id      => '&1',
+                          begin_snap  => &2,  
+						  end_snap    => &3, 
+                          scope       => DBMS_SQLTUNE.scope_comprehensive,
+                          time_limit  => 18000,
+                          task_name   => '&1'||'_AWR_tuning_task',
+                          description => 'Tuning task for statement &&1 in shared_pool');
+  DBMS_OUTPUT.put_line('l_sql_tune_task_id: ' || l_sql_tune_task_id);
+END;
+/
+ 
+----- > 3. Execute the tuning task:
+
+exec dbms_sqltune.execute_tuning_task(task_name => '&1'||'_AWR_tuning_task');
+ 
+----- > 4. Get the tuning task recommendation report
+ 
+SELECT DBMS_SQLTUNE.report_tuning_task('&1'||'_AWR_tuning_task') AS recommendations FROM dual;
