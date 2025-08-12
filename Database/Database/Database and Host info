@@ -1,0 +1,53 @@
+--====================================Database/Host info========================================== mm-dd-yyyy hh24:mi:ss
+prompt
+prompt + Database/Host info
+prompt
+
+set serveroutput on
+
+declare
+    procedure p(P_name varchar2,P_val varchar2) is
+    begin
+        if P_val is not null then
+            DBMS_OUTPUT.put_line(rpad(P_name||' ',25,'.')||' '||P_val);
+        end if;
+    end p;
+begin
+    for r in (
+        select d.name,i.instance_name,i.version,d.created,d.log_mode,i.startup_time,
+               substr(numtodsinterval(sysdate-i.startup_time,'day'),9,11) uptime,
+               i.instance_role,i.parallel,i.instance_number,i.host_name,d.platform_name
+        from   v$database d,v$instance i
+    ) loop
+        p('DB Name',r.name);
+        p('Version',r.version);
+        p('Parallel (RAC)',r.parallel);
+        p('Created',r.created);
+        p('Startup Time',to_char(r.startup_time,'dd-MON-yyyy hh24:mi:ss')||', Uptime '||
+          case when extract(day from numtodsinterval(sysdate-r.startup_time,'DAY'))>0 then
+            extract(day from numtodsinterval(sysdate-r.startup_time,'DAY'))||'-'
+          end||substr(numtodsinterval(sysdate-r.startup_time,'DAY'),12,5)
+        );
+        p('Log Mode',r.log_mode);
+        p('Instance Name',r.instance_name);
+        p('Instance Number',r.instance_number);
+        p('Instance Role',r.instance_role);
+        DBMS_OUTPUT.put_line(' ');
+        p('Host Name',r.host_name);
+        p('Platform',r.platform_name);
+    end loop;
+    for r in (
+        select
+         (select value from v$osstat where stat_name='PHYSICAL_MEMORY_BYTES') phy_mem,
+         (select value from v$osstat where stat_name='NUM_CPUS')              num_cpus,
+         (select value from v$osstat where stat_name='NUM_CPU_SOCKETS')       num_sockets,
+         (select value from v$osstat where stat_name='NUM_CPU_CORES')         num_cores
+        from dual
+    ) loop
+        p('Physical Memory(Mb)',to_char(r.phy_mem/1048576,'fm999,999,999'));
+        p('Number of CPUs',r.num_cpus);
+        p('Number of CPU Sockets',r.num_sockets);
+        p('Number of CPU Cores',r.num_cores);
+    end loop;
+end;
+/
