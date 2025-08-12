@@ -1,0 +1,31 @@
+SELECT  b.inst_id,
+        LPAD('--->',DECODE(A.request,0,0,5)) || A.SID SID, a.id1, a.id2, a.lmode, a.BLOCK, a.request, 
+        DECODE(a.TYPE,
+        'MR', 'Media Recovery',
+        'RT', 'Redo Thread',
+        'UN', 'User Name',
+        'TX', 'Transaction',
+        'TM', 'DML',
+        'UL', 'PL/SQL User Lock',
+        'DX', 'Distributed Xaction',
+        'CF', 'Control File',
+        'IS', 'Instance State',
+        'FS', 'File Set',
+        'IR', 'Instance Recovery',
+        'ST', 'Disk Space Transaction',
+        'TS', 'Temp Segment',
+        'IV', 'Library Cache Invalidation',
+        'LS', 'Log Start or Switch',
+        'RW', 'Row Wait',
+        'SQ', 'Sequence Number',
+        'TE', 'Extend Table',
+        'TT', 'Temp Table', a.TYPE) lock_type,
+b.PROGRAM, b.machine, b.OSUSER ,b.USERNAME,b.status, b.module, b.action ,b.LOGON_TIME,b.LAST_CALL_ET,
+'alter system kill session ' || '''' || a.SID || ',' || b.serial# ||  ',@' || b.inst_id ||  '''' || ';' kill_session
+,DECODE(object_type, NULL, NULL, 'Dbms_Rowid.rowid_create(1, ' || row_wait_obj# || ', ' || row_wait_file# ||', ' || row_wait_block#||', ' || row_wait_row# ||')') row_id
+FROM gV$LOCK a, gv$session b , dba_objects o
+WHERE (a.id1,a.id2) IN (SELECT id1,id2 FROM gV$LOCK WHERE lmode=0)
+  AND a.INST_ID=b.INST_ID
+  AND a.SID=b.SID
+  AND o.object_id(+)=DECODE(b.ROW_WAIT_OBJ#, -1, NULL, b.ROW_WAIT_OBJ#)
+ORDER BY a.id1,a.id2,a.request;
