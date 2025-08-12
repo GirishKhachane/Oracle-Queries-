@@ -1,0 +1,17 @@
+SELECT  decode(trunc(sysdate - c.logon_time), 0, null, trunc(sysdate - logon_time) || ' Days' || ' + ') 
+        || to_char(to_date(trunc(mod(sysdate-logon_time,1) * 86400), 'sssss'), 'hh24:mi:ss') logon, 
+        c.SID, 
+        c.serial#, c.username, c.program, c.machine,
+a.NAME RB_SEGMENT, dba_seg.tablespace_name tbs_name, dba_seg.size_mb, 
+t.addr, t.xidusn USN, t.xidslot SLOT, t.xidsqn SQN, t.USED_UBLK, t.USED_UREC, t.status,t.start_time, 
+t.log_io , t.phy_io, t.cr_get, t.cr_change , d.sql_text
+FROM v$rollname a, v$rollstat b, v$session c, v$sqlarea d, v$transaction t, 
+(SELECT segment_name, tablespace_name, ROUND(bytes/(1024*1024),2) size_mb 
+  FROM dba_segments WHERE segment_type = 'TYPE2 UNDO' ORDER BY bytes DESC) dba_seg 
+WHERE a.usn = b.usn AND b.usn=t.xidusn 
+AND c.taddr=t.addr  
+AND c.sql_address = d.address  (+)
+AND c.sql_hash_value = d.hash_value (+)
+AND a.NAME = dba_seg.segment_name
+-- for a given SID (blocker !!!) and c.sid = &sid
+ORDER BY a.NAME,c.SID;
