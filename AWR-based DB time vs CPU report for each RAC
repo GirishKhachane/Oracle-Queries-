@@ -1,0 +1,29 @@
+DEF s_snap_id = &&1;
+DEF e_snap_id = &&2;
+with D as (
+select begin_snap, end_snap, timestamp begin_timestamp, extract( minute from period ) period, inst, round(a/1000/1000/60,1) DBtime from
+( select
+e.snap_id end_snap,
+s.end_interval_time-s.begin_interval_time period,
+lag(e.snap_id) over (order by e.instance_number,e.snap_id) begin_snap,
+lag(s.end_interval_time) over (order by e.instance_number,e.snap_id) timestamp,
+s.instance_number inst, e.value, nvl(value-lag(value) over (order by e.instance_number,e.snap_id),0) a
+from dba_hist_sys_time_model e, DBA_HIST_SNAPSHOT s
+where
+   --  s.snap_id between &&s_snap_id and &&e_snap_id
+     s.begin_interval_time > trunc(sysdate) - 3
+and s.snap_id = e.snap_id
+and e.instance_number = s.instance_number
+and stat_name             = 'DB time'
+) T where T.begin_snap= T.end_snap-1
+order by T.begin_snap, T.inst asc
+) ,
+L as ( select instance_number, snap_id, value lcpus
+from dba_hist_parameter where parameter_name='cpu_count'
+--and snap_id between &&s_snap_id and &&e_snap_id 
+)
+select D.begin_snap, D.end_snap, D.begin_timestamp, D.inst, D.DBtime , L.lcpus, round (D.DBTIME/D.period,1) avg_active_sess
+from D, L 
+where L.snap_id = D.begin_snap 
+  and L.instance_number = D.inst
+/
