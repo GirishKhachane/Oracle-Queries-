@@ -1,0 +1,32 @@
+WITH T AS (
+    SELECT table_name, owner, index_name
+    FROM   dba_indexes
+    WHERE  owner      = 'TAB_OWNER'
+    AND    table_name = 'TABLE_NAME'
+)
+-- Index details
+SELECT  segment_name,
+        s.owner,
+        table_name,
+        ROUND(SUM(bytes / 1024 / 1024)) mbytes,
+        DBMS_METADATA.GET_DDL('INDEX', segment_name, 'TAB_OWNER') AS index_sqlstmt,
+        COUNT(1) AS extent_count
+FROM    T
+JOIN    dba_segments s
+    ON  segment_name = index_name
+WHERE   s.owner = 'TAB_OWNER'
+GROUP BY segment_name, s.owner, table_name
+
+UNION ALL
+
+-- Table details
+SELECT  segment_name,
+        owner,
+        'TABLE_NAME' AS table_name,
+        ROUND(SUM(bytes / 1024 / 1024)) mbytes,
+        DBMS_METADATA.GET_DDL('TABLE', segment_name, 'TAB_OWNER') AS table_sqlstmt,
+        COUNT(1) AS extent_count
+FROM    dba_segments
+WHERE   owner        = 'TAB_OWNER'
+AND     segment_name = 'TABLE_NAME'
+GROUP BY segment_name, owner;
