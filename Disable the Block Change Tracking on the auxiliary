@@ -1,0 +1,84 @@
+###  Block Change Tracking and Duplicate: avoid ORA-19755
+
+###  vi disable_trk_dup.sh
+
+--------------------  Script -----------------------------------------------
+
+#!/bin/ksh
+
+if [ $# -ne 1 ] ; then
+        echo "Usage: $0 \$ORACLE_SID"
+        exit 1
+fi
+ORACLE_SID=$1
+export ORACLE_SID
+
+ORACLE_HOME=`cat /etc/oratab | grep ^$ORACLE_SID | awk -F":" '{print $2}'`
+export ORACLE_HOME
+
+
+disable_trk () {
+        echo "DISABLE BLOCK CHANGE TRACKING"
+        sqlplus -s / as sysdba << EOF
+        set echo on
+        col FILENAME for a30
+        ALTER DATABASE DISABLE BLOCK CHANGE TRACKING;
+        select * from v\$block_change_tracking;
+EOF
+}
+
+echo "Checking block change tracking for $ORACLE_SID"
+
+PATH=${ORACLE_HOME}/bin:$PATH; export PATH
+
+## for how much time do you want to run the check?
+INTERVAL=30
+MAXCOUNT=30
+
+# loop until the database status is either MOUNTED or OPEN
+COUNT=1
+while [ $COUNT -le $MAXCOUNT ] ; do
+        STATUS=`sqlplus -s / as sysdba <<EOF
+                whenever sqlerror exit SQL.SQLCODE;
+                set head off feed off
+                select status from v\\$instance;
+EOF
+`
+        if [ $? -eq 0 ] ; then
+                if [ $STATUS != "MOUNTED" ] && [ $STATUS != "OPEN" ] ; then
+                        echo "$COUNT : Still not mounted"
+                        sleep $INTERVAL
+                        COUNT=$(($COUNT+1))
+                        continue;
+                else
+                        echo
+                        echo "If there is an error, BCT is enabled but Oracle can't find the file (ORA-27037)"
+                        echo "This is normal, I'll procede with the disable to avoid the error at the end of the duplicate."
+                        sqlplus -s / as sysdba <<EOF 2>/dev/null
+                        whenever sqlerror exit SQL.SQLCODE;
+                        set head off feed off
+                        select status from v\$block_change_tracking where status='ENABLED';
+EOF
+                        # if i get an error, BCT is enabled but Oracle can't find the file (ORA-27037)
+                        if [ $? -eq 0 ] ; then
+                                echo "BCT already disabled"
+                        else
+                                echo "Got the error. Let's disable the BCT!"
+                                disable_trk
+                        fi
+                        break;
+                fi
+        else
+                echo "$COUNT : Still not mounted"
+                sleep $INTERVAL
+                COUNT=$(($COUNT+1))
+                continue;
+        fi
+done
+
+--------------------  Script End -----------------------------------------------
+
+---> Run it  just before the duplicate! e.g.
+
+./disable_trk_dup.sh $ORACLE_SID &
+nohup rman auxiliary=/ cmdfile=dup_networker_new.rman log=dup_networker_new_2.log &
