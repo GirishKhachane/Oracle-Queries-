@@ -1,0 +1,80 @@
+set serveroutput on
+set lines 1000
+set pages 1000
+
+declare
+   v_unformatted_blocks number;
+   v_unformatted_bytes  number;
+   v_fs1_blocks         number;
+   v_fs1_bytes          number;
+   v_fs2_blocks         number;
+   v_fs2_bytes          number;
+   v_fs3_blocks         number;
+   v_fs3_bytes          number;
+   v_fs4_blocks         number;
+   v_fs4_bytes          number;
+   v_full_blocks        number;
+   v_full_bytes         number;
+   v_percent            number;
+
+begin
+for x in
+(select * from (
+select a.owner, a.segment_name, a.partition_name, a.segment_type, a.bytes from dba_Segments a, dba_tablespaces b where a.tablespace_name=b.tablespace_name and b.segment_space_management='AUTO' and a.segment_type in ('TABLE' ,'TABLE PARTITION') and a.owner not in ('SYS') order by a.bytes desc
+)
+where rownum<100) -- top N tables by size will be checked
+
+loop
+if x.partition_name is null then
+dbms_space.space_usage(x.owner,
+                          x.segment_name,
+                          'TABLE',
+                          v_unformatted_blocks,
+                          v_unformatted_bytes,
+                          v_fs1_blocks,
+                          v_fs1_bytes,
+                          v_fs2_blocks,
+                          v_fs2_bytes,
+                          v_fs3_blocks,
+                          v_fs3_bytes,
+                          v_fs4_blocks,
+                          v_fs4_bytes,
+                          v_full_blocks,
+                          v_full_bytes);
+
+v_percent := round((v_fs1_bytes+v_fs2_bytes+v_fs3_bytes+v_fs4_bytes)*100/x.bytes,4);
+
+if v_percent > 30 then -- will be reported only if fragmentation percent > 30
+dbms_output.put_line(x.owner||' '||x.segment_name||' Total size = '||round(x.bytes/1024/1024,2)||' MB'||' Free space = '||round((v_fs1_bytes+v_fs2_bytes+v_fs3_bytes+v_fs4_bytes)/1024/1024)||' MB'||' Percent from all size - '||round((v_fs1_bytes+v_fs2_bytes+v_fs3_bytes+v_fs4_bytes)*100/x.bytes,4)||'%');
+else
+null;
+end if;
+else
+dbms_space.space_usage(x.owner,
+                          x.segment_name,
+                          'TABLE PARTITION',
+                          v_unformatted_blocks,
+                          v_unformatted_bytes,
+                          v_fs1_blocks,
+                          v_fs1_bytes,
+                          v_fs2_blocks,
+                          v_fs2_bytes,
+                          v_fs3_blocks,
+                          v_fs3_bytes,
+                          v_fs4_blocks,
+                          v_fs4_bytes,
+                          v_full_blocks,
+                          v_full_bytes,
+                          x.partition_name);
+
+v_percent := round((v_fs1_bytes+v_fs2_bytes+v_fs3_bytes+v_fs4_bytes)*100/x.bytes,4);
+
+if v_percent > 30 then -- will be reported only if fragmentation percent > 30
+dbms_output.put_line(x.owner||' '||x.segment_name||' Partition name '||x.partition_name||' Total size = '||round(x.bytes/1024/1024,2)||' MB'||' Free space = '||round((v_fs1_bytes+v_fs2_bytes+v_fs3_bytes+v_fs4_bytes)/1024/1024)||' MB'||' Percent from all size - '||round((v_fs1_bytes+v_fs2_bytes+v_fs3_bytes+v_fs4_bytes)*100/x.bytes,4)||'%');
+else
+null;
+end if;
+end if ;
+end loop;
+end;
+/
