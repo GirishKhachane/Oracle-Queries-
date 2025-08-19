@@ -1,0 +1,170 @@
+#!/usr/local/bin/bash
+# Skip ARCHIVE tablespace during database restore
+
+#-------------------------------------------------
+# INIT SECTION
+#-------------------------------------------------
+export ORACLE_SID=DFCP1
+export ORACLE_BASE=/d01/oracle
+export ORACLE_TERM=vt100
+export ORACLE_HOME=/d01/oracle/11.2.0.3
+export NLS_DATE_FORMAT='YYYY-MM-DD HH24:MI:SS'
+export DATE=$(date +%Y-%m-%d)
+export HOME=/home/oracle
+export LOG_FILE1=$HOME/BB_scripts/restoreCF_$DATE.log
+export LOG_FILE2=$HOME/BB_scripts/restoreLimitedDB_$DATE.log
+export LOG_FILE3=$HOME/BB_scripts/restoreLTFCARCH_$DATE.log
+export LOG_FILE4=$HOME/BB_scripts/restoreSPFILE_$DATE.log
+
+#-------------------------------------------------
+# Please review dbid and set until time clause
+#-------------------------------------------------
+
+# Restore SPFILE 
+# Steps 1a and 1b from the flow chart
+$ORACLE_HOME/bin/rman target / LOG = $LOG_FILE4 APPEND <<EOF
+connect catalog RMAN12/<password>@RCAT12
+set dbid=2613293926;
+run 
+{
+allocate channel 'dev_0' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+restore spfile;
+startup force nomount ;                
+sql 'alter system set cluster_database=FALSE scope=spfile';
+startup force nomount ;  
+release channel 'dev_0';
+}
+exit;
+
+EOF
+
+# Below RMAN section only restores the CF
+# Step 1c from the flow chart
+$ORACLE_HOME/bin/rman target / LOG = $LOG_FILE1 APPEND <<EOF
+connect catalog RMAN12/<password>@RCAT12
+run
+{
+set dbid=2613293926;
+allocate channel 'dev_0' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+set newname for database to "+DATAFC";
+
+# depending on the restore point please change the below date
+set until time="TO_DATE('2024-10-21 7:00:00', 'YYYY-MM-DD HH24:MI:SS')";
+restore controlfile;
+alter database mount;
+release channel 'dev_0';
+}
+exit;
+
+EOF
+
+
+# Below RMAN section restores/recovers the DB by skipping LTFCARCH tablespace
+# Steps 1d and 1e from the flow chart
+$ORACLE_HOME/bin/rman target / LOG = $LOG_FILE2 APPEND <<EOF
+connect catalog RMAN12/<password>@RCAT12
+run
+{
+allocate channel 'dev_0' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_1' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_2' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_3' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_4' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_5' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_6' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_7' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_8' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_9' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_10' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_11' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_12' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+set newname for database to "+DATAFC";
+set newname for tempfile 1 to "+DATAFC";
+set newname for tempfile 2 to "+DATAFC";
+set newname for tempfile 3 to "+DATAFC";
+set newname for tempfile 4 to "+DATAFC";
+set newname for tempfile 5 to "+DATAFC";
+set newname for tempfile 6 to "+DATAFC";
+set newname for tempfile 7 to "+DATAFC";
+set newname for tempfile 8 to "+DATAFC";
+# depending on the restore point please change the below date
+set until time="TO_DATE('2024-10-21 7:00:00', 'YYYY-MM-DD HH24:MI:SS')";
+# below command skips ARCHIVE tablespace
+restore database skip tablespace LTFCARCHPROD;
+switch datafile all;
+switch tempfile all;
+# below command skips ARCHIVE tablespace
+recover database skip tablespace LTFCARCHPROD;
+alter database open resetlogs;
+sql 'alter system set cluster_database=TRUE scope=spfile';
+release channel 'dev_0';
+release channel 'dev_1';
+release channel 'dev_2';
+release channel 'dev_3';
+release channel 'dev_4';
+release channel 'dev_5';
+release channel 'dev_6';
+release channel 'dev_7';
+release channel 'dev_8';
+release channel 'dev_9';
+release channel 'dev_10';
+release channel 'dev_11';
+release channel 'dev_12';
+}
+exit;
+
+EOF
+
+# Step 1f from the flow chart
+# Stop the database - currently only one instance is running
+srvctl stop database -d DFCP
+
+# Start the clustered database - both the instances
+srvctl start database -d DFCP
+
+# Step 1g from the flow chart
+echo "*********************************************"
+echo "***** DATABASE IS NOW AVAILABLE FOR USE *****"
+echo "***** APPS TEAM CAN START APPS SERVICES *****"
+echo "*********************************************"
+
+# Below RMAN section restores/recovers only LTFCARCH tablespace after the DB is available for use
+# Step 1h from the flow chart
+$ORACLE_HOME/bin/rman target / LOG = $LOG_FILE3 APPEND <<EOF
+connect catalog RMAN12/<password>@RCAT12
+run
+{
+allocate channel 'dev_0' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_1' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_2' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_3' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_4' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_5' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_6' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_7' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_8' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_9' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_10' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_11' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+allocate channel 'dev_12' type 'sbt_tape' parms 'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dbcdbp2.dnbnord.net,NSR_FXBUSY_RETRIES=10)';
+set newname for database to "+DATAFC";
+restore tablespace LTFCARCHPROD;
+recover tablespace LTFCARCHPROD;
+sql 'alter tablespace LTFCARCHPROD ONLINE';
+release channel 'dev_0';
+release channel 'dev_1';
+release channel 'dev_2';
+release channel 'dev_3';
+release channel 'dev_4';
+release channel 'dev_5';
+release channel 'dev_6';
+release channel 'dev_7';
+release channel 'dev_8';
+release channel 'dev_9';
+release channel 'dev_10';
+release channel 'dev_11';
+release channel 'dev_12';
+}
+exit;
+
+EOF
