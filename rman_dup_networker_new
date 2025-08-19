@@ -1,0 +1,42 @@
+
+connect catalog RMAN12/<password>@RCAT12
+run {
+ALLOCATE AUXILIARY CHANNEL csss1 DEVICE TYPE sbt_tape parms
+'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dfcdbp2.client.net,NSR_FXBUSY_RETRIES=10)';
+ALLOCATE AUXILIARY CHANNEL csss2 DEVICE TYPE sbt_tape parms
+'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dfcdbp2.client.net,NSR_FXBUSY_RETRIES=10)';
+ALLOCATE AUXILIARY CHANNEL csss3 DEVICE TYPE sbt_tape parms
+'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dfcdbp2.client.net,NSR_FXBUSY_RETRIES=10)';
+ALLOCATE AUXILIARY CHANNEL csss4 DEVICE TYPE sbt_tape parms
+'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dfcdbp2.client.net,NSR_FXBUSY_RETRIES=10)';
+ALLOCATE AUXILIARY CHANNEL csss5 DEVICE TYPE sbt_tape parms
+'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dfcdbp2.client.net,NSR_FXBUSY_RETRIES=10)';
+ALLOCATE AUXILIARY CHANNEL csss6 DEVICE TYPE sbt_tape parms
+'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dfcdbp2.client.net,NSR_FXBUSY_RETRIES=10)';
+ALLOCATE AUXILIARY CHANNEL csss7 DEVICE TYPE sbt_tape parms
+'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dfcdbp2.client.net,NSR_FXBUSY_RETRIES=10)';
+ALLOCATE AUXILIARY CHANNEL csss8 DEVICE TYPE sbt_tape parms
+'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dfcdbp2.client.net,NSR_FXBUSY_RETRIES=10)';
+ALLOCATE AUXILIARY CHANNEL csss9 DEVICE TYPE sbt_tape parms
+'ENV=(NSR_SERVER=pdlt-bcknw1.onelum.net,NSR_DATA_VOLUME_POOL=dd02fsapp,NSR_CLIENT=dfcdbp2.client.net,NSR_FXBUSY_RETRIES=10)';
+duplicate database DFCP dbid 2613293926 to DFCDBEOD
+skip tablespace LTFCARCHPROD
+until time "to_date('2024-11-02 10:35:00','YYYY-MM-DD hh24:mi:ss')"
+spfile parameter_value_convert ('DFCP','DFCDBEOD','dfcp','dfcdbeod')
+set db_file_name_convert='+DATAFC','/d02/oradata'
+set log_file_name_convert='+REDOFC','/d02/oradata','+DATAFC','/d02/oradata'
+set remote_listener=''
+set audit_file_dest='/d01/oracle/admin/EOYDFCDB1/adump'
+set cluster_database='false'
+set control_files='/d02/oradata/DFCDBEOD/controlfile/o1_mf_ltl8m7x2_.ctl','/d02/FRA/DFCDBEOD/controlfile/o1_mf_ltl8m7x4_.ctl'
+set db_create_file_dest='/d02/oradata'
+set db_recovery_file_dest='/d02/FRA'
+set db_name='DFCDBEOD'
+set service_names='DFCDBEOD.client.net'
+set memory_target='4294967296'
+set large_pool_size='67108864'
+set shared_pool_reserved_size='0'
+set memory_max_target='4294967296'
+set db_files='1000'
+nofilenamecheck;
+}
